@@ -1,3 +1,5 @@
 # ignore directory
 install/
 src/
+php-7.4.13_build/
+www_root/
