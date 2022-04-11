@@ -22,7 +22,7 @@ parentdir="$(dirname $dir0)"
 fn_stoponerror "$?" $LINENO
 
 file="$php_executable"
-link="$parentdir/php-7.4"
+link="$parentdir/sallecta_php-7.4"
 
 if [ -f $link ]; then
 	rm $link
