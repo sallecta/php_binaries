@@ -1,76 +1,180 @@
 #!/usr/bin/env bash
 
-#usage:
-# fn_stoponerror "$?" $LINENO
-fn_stoponerror () {
-lNo=$(expr $2 - 1)
-if [ $1 -ne 0 ]; then
-        printf '%s\n\n' "$lNo: error [$1]"
-        exit $1
-else
-       printf '%s\n' "$lNo success"
-fi
+fn_stoponerror ()
+{
+	# Usage:
+	# fn_stoponerror $? $LINENO
+	error_code=$1
+	line=$2
+	if [ $error_code -ne 0 ]; then
+		printf "\n"$line": error ["$error_code"]\n\n"
+		exit $error_code
+	else
+		printf "\n"$line": succsess\n\n"
+	fi
 }
 
 dir0="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-phprelease=php-7.4.13
-phpSrcDir="$dir0/src"
-phpInstallDir="$dir0/install/$phprelease"_build""
+arg_1=$1
+arg_2=$2
+if [ "$arg_2" = "32" ]; then 
+	php_architecture="i686-linux-gnu"
+
+elif [ "$arg_2" = "64" ]; then
+	php_architecture="x86_64-linux-gnu"
+fi
+
+php_src_name="php-7.4.13"
+php_src_dir="$dir0/src"
+php_release_name="$php_src_name""_$php_architecture""_build"
+php_install_dir="$dir0/install"
+php_release_install_dir="$php_install_dir/$php_release_name"
+php_tar_archive_name="$php_release_name"".tar.gz"
 
 
-printf '\n%s\n' "Checking root directory"
-cd $dir0
-fn_stoponerror "$?" $LINENO
+fn_print_usage ()
+{
+    printf "
+Usage:
+	clean	- delete all builded and installed files;
+	make 32	- configure, make and install (portable) 32 bit $php_src_name;
+	make 64	- configure, make and install (portable) 64 bit $php_src_name;
+	pack 32	- pack 32 bit portable in tar.gz;
+	pack 64	- pack 64 bit portable in tar.gz.	
+\n\n"
+}
 
-if [ "$1" = "clean" ]; then 
-    printf '\n%s\n' "Removing src and install directories"
-    rm -r  "$dir0/src"   "$dir0/install"
-    fn_stoponerror "$?" $LINENO
+action=""
 
-elif [ "$1" = "make" ]; then 
-    printf '\n%s\n' "Creating php source directory [$phpSrcDir]"
-    mkdir -p "$phpSrcDir"
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Extracting php source [$phprelease]"
-    tar -xf "$dir0/distr/"$phprelease".tar.gz" -C "$phpSrcDir"
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Creating installation directory [$phpInstallDir]"
-    mkdir -p $phpInstallDir
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Entering php source directory [$phprelease]"
-    cd "$phpSrcDir/"$phprelease
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Configuring silently $phprelease"
-    ./configure --prefix=$phpInstallDir > /dev/null
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Making silently $phprelease"
-    make > /dev/null
-    fn_stoponerror "$?" $LINENO
-
-    printf '\n%s\n' "Installing silently $phprelease to [$phpInstallDir]"
-    make install > /dev/null
-    fn_stoponerror "$?" $LINENO
-
-elif  [ "$1" = "pack" ]; then 
-    printf '\n%s\n' "Packing [$phpInstallDir] to ["$dir0/$phprelease"_build".tar.gz"]"
-    cd "$dir0/install"
-    fn_stoponerror "$?" $LINENO
-
-    tar -czf "$dir0/$phprelease"_build".tar.gz" "$phprelease"_build""
-    fn_stoponerror "$?" $LINENO
+if [ "$arg_1" = "clean" ] && [ "$arg_2" = "" ]; then
+	action="clean"
+	
+elif [ "$arg_1" = "make" ] && [ "$arg_2" = "32" ]; then 
+	 action="make32"
+	php_architecture="i686-linux-gnu"
+	
+elif [ "$arg_1" = "make" ] &&  [ "$arg_2" = "64" ]; then
+	action="make64"
+	php_architecture="x86_64-linux-gnu"
+	
+elif [ "$arg_1" = "pack" ] && [ "$arg_2" = "32" ]; then 
+	action="pack"
+	php_architecture="i686-linux-gnu"
+	
+elif [ "$arg_1" = "pack" ] && [ "$arg_2" = "64" ]; then 
+	action="pack"
+	php_architecture="x86_64-linux-gnu"
+	
 else
-    printf '\n%s\n' "Wrong argument [$1]. Use:
-    clean - to delete builded and installed files;
-    make  - to configure, make and install (create portable) $phprelease;
-    pack  - to pack portable $phprelease build in tar.gz"
+	printf "\n\nWrong arguments: ["$arg_1"], ["$arg_2"].\n\n"
+	fn_print_usage
+	exit 1
+fi
+
+printf "\n"$LINENO": Checking root directory\n"
+cd $dir0
+fn_stoponerror $? $LINENO
+
+if [ "$action" = "clean" ]; then
+	printf "\n"$LINENO": Checkingand install directories\n"
+	ls "$php_src_dir"   "$php_install_dir"
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Removing src and install directories\n"
+	rm -r  "$php_src_dir"   "$php_install_dir"
+	fn_stoponerror $? $LINENO
+	
+elif [ "$action" = "make32" ]; then
+	printf "\n"$LINENO": Creating php source directory [$php_src_dir]\n"
+	mkdir -p "$php_src_dir"
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Extracting php source [$php_src_name]\n"
+	tar -xf "$dir0/distr/"$php_src_name".tar.gz" -C "$php_src_dir"
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Creating installation directory [$php_release_install_dir]\n"
+	mkdir -p $php_release_install_dir
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Entering php source directory [$php_src_name]\n"
+	cd "$php_src_dir/"$php_src_name
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Configuring $php_release_name\n"
+	./configure --with-mysqli --with-openssl --enable-mbstring --prefix=$php_release_install_dir --host="$php_architecture" CFLAGS=-m32 CXXFLAGS=-m32 LDFLAGS=-m32
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Making $php_release_name\n"
+	old_CFLAGS=$CFLAGS
+	old_CXXFLAGS=$CXXFLAGS
+	old_LDFLAGS=$LDFLAGS
+	export CFLAGS='-m32'
+	export CXXFLAGS='-m32'
+	export LDFLAGS='-m32'
+	make
+	ercode=$?
+	export CFLAGS=$old_CFLAGS
+	export CXXFLAGS=$old_CXXFLAGS
+	export LDFLAGS=$old_LDFLAGS
+	fn_stoponerror $ercode $LINENO
+	
+	printf "\n"$LINENO": Installing $php_release_name to [$php_release_install_dir]\n"
+	make install
+	fn_stoponerror $? $LINENO
+	
+elif [ "$action" = "make64" ]; then 
+	printf "\n"$LINENO": Creating php source directory [$php_src_dir]\n"
+	mkdir -p "$php_src_dir"
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Extracting php source [$php_src_name]\n"
+	tar -xf "$dir0/distr/"$php_src_name".tar.gz" -C "$php_src_dir"
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Creating installation directory [$php_release_install_dir]\n"
+	mkdir -p $php_release_install_dir
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Entering php source directory [$php_src_name]\n"
+	cd "$php_src_dir/"$php_src_name
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Configuring $php_release_name\n"
+	./configure --with-mysqli --with-openssl --enable-mbstring --prefix=$php_release_install_dir
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Making $php_release_name\n"
+	make
+	fn_stoponerror $? $LINENO
+	
+	printf "\n"$LINENO": Installing $php_release_name to [$php_release_install_dir]\n"
+	make install
+	fn_stoponerror $? $LINENO
+	
+elif  [ "$action" = "pack" ]; then 
+	printf "\n"$LINENO": Packing ["$php_release_install_dir"] to ["$php_tar_archive_name"]\n"
+	cd $php_install_dir
+	fn_stoponerror $? $LINENO
+	
+	ls "$php_release_install_dir"
+	fn_stoponerror $? $LINENO	
+	
+	ls "$php_release_name"
+	fn_stoponerror $? $LINENO
+	
+	tar -czf "$dir0/$php_tar_archive_name" "$php_release_name"
+	fn_stoponerror $? $LINENO
+	
+	ls "$dir0/$php_tar_archive_name"
+	fn_stoponerror $? $LINENO
+	
+else
+	printf "\n\nUnknown action: ["$action"] (arguments: ["$1"], ["$2"] ).\n\n"
+	fn_print_usage
 fi
 
 
 
-printf '\n%s\n' "Finished [$LINENO]"
+printf "\n"$LINENO": End Of File\n"
